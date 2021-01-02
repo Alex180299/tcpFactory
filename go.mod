@@ -1,1 +1,3 @@
-module github.com/Alex180299/tcp-client-server/tcpFactory
+module github.com/Alex180299/tcpFactory
+
+go 1.15
