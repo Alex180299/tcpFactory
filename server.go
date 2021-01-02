@@ -61,7 +61,7 @@ func (tcp *tcpServer) handleNewClient(conn net.Conn) {
 
 	clientReader := bufio.NewReader(conn)
 	for {
-		clientResponse, err := clientReader.ReadString('\n')
+		clientResponse, err := clientReader.ReadString(tcp.parameters.Delimiter)
 
 		if err == nil {
 			serverClient.InputChannel <- clientResponse

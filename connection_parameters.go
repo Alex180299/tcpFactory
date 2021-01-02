@@ -5,4 +5,5 @@ type ConnectionParameters struct {
 	Port             string
 	ReconnectionTime int
 	Name             string
+	Delimiter        byte
 }

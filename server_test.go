@@ -9,6 +9,7 @@ func TestNewTcpServer(t *testing.T) {
 			Port:             "5000",
 			ReconnectionTime: 1000,
 			Name:             "Server connection",
+			Delimiter:        ' ',
 		},
 		OnNewClientListener: nil,
 	})
