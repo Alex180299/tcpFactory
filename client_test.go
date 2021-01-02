@@ -7,6 +7,7 @@ import (
 
 func TestNewTcpClient(t *testing.T) {
 	inputChannel := make(chan string)
+	outputChannel := make(chan string)
 
 	client := newTcpClient(&ClientParameters{
 		ConnectionParameters: ConnectionParameters{
@@ -17,11 +18,12 @@ func TestNewTcpClient(t *testing.T) {
 			MaxSizeBuffer:    100,
 		},
 		InputChannel:  inputChannel,
-		OutputChannel: nil,
+		OutputChannel: outputChannel,
 	})
 
 	err := client.Connect()
 
+	outputChannel <- "Golang client connected"
 	fmt.Println(<-inputChannel)
 
 	if err != nil {

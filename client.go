@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"bufio"
 	"net"
 )
 
@@ -32,18 +31,25 @@ func (tcp *tcpClient) Connect() error {
 
 	tcp.conn = conn
 	go tcp.bindInputChannel()
+	go tcp.bindOutputChannel()
 	return nil
 }
 
 func (tcp *tcpClient) bindInputChannel() {
-	serverReader := bufio.NewReader(tcp.conn)
 	for {
 		bytes := make([]byte, tcp.parameters.MaxSizeBuffer)
-		_, err := serverReader.Read(bytes)
+		_, err := tcp.conn.Read(bytes)
 
 		if err == nil {
 			tcp.parameters.InputChannel <- string(bytes)
 		}
+	}
+}
+
+func (tcp *tcpClient) bindOutputChannel() {
+	for {
+		outputMessage := <-tcp.parameters.OutputChannel
+		tcp.conn.Write([]byte(outputMessage))
 	}
 }
 

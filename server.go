@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"bufio"
 	"net"
 )
 
@@ -38,7 +37,7 @@ func (tcp *tcpServer) Connect() error {
 
 func (tcp *tcpServer) acceptClient() {
 	for {
-		conn, err := tcp.listener.Accept()
+		conn, err := tcp.listener.AcceptTCP()
 		if err != nil {
 			continue
 		}
@@ -47,7 +46,7 @@ func (tcp *tcpServer) acceptClient() {
 	}
 }
 
-func (tcp *tcpServer) handleNewClient(conn net.Conn) {
+func (tcp *tcpServer) handleNewClient(conn *net.TCPConn) {
 	inputChannel := make(chan string)
 	outputChannel := make(chan string)
 
@@ -58,15 +57,25 @@ func (tcp *tcpServer) handleNewClient(conn net.Conn) {
 	}
 
 	go tcp.parameters.OnNewClientListener(serverClient)
+	go tcp.handleClientInputChannel(conn, serverClient)
+	go tcp.handleClientOutputChannel(conn, serverClient)
+}
 
-	clientReader := bufio.NewReader(conn)
+func (tcp *tcpServer) handleClientInputChannel(conn *net.TCPConn, client *ServerClient) {
 	for {
 		bytes := make([]byte, tcp.parameters.MaxSizeBuffer)
-		_, err := clientReader.Read(bytes)
+		_, err := conn.Read(bytes)
 
 		if err == nil {
-			serverClient.InputChannel <- string(bytes)
+			client.InputChannel <- string(bytes)
 		}
+	}
+}
+
+func (tcp *tcpServer) handleClientOutputChannel(conn *net.TCPConn, client *ServerClient) {
+	for {
+		outputMessage := <-client.OutputChannel
+		conn.Write([]byte(outputMessage))
 	}
 }
 

@@ -1,8 +1,12 @@
 package tcp
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestNewTcpServer(t *testing.T) {
+	waitChannel := make(chan string)
 	server := newTcpServer(&ServerParameters{
 		ConnectionParameters: ConnectionParameters{
 			Ip:               "localhost",
@@ -11,7 +15,11 @@ func TestNewTcpServer(t *testing.T) {
 			Name:             "Server connection",
 			MaxSizeBuffer:    100,
 		},
-		OnNewClientListener: nil,
+		OnNewClientListener: func(client *ServerClient) {
+			client.OutputChannel <- "Hello from golang server"
+			str := <-client.InputChannel
+			waitChannel <- str
+		},
 	})
 
 	err := server.Connect()
@@ -19,6 +27,8 @@ func TestNewTcpServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("error when server listening")
 	}
+
+	fmt.Println(<-waitChannel)
 
 	server.Close()
 }
