@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 )
 
@@ -32,7 +31,7 @@ func (tcp *tcpClient) Connect() error {
 	}
 
 	tcp.conn = conn
-	tcp.bindInputChannel()
+	go tcp.bindInputChannel()
 	return nil
 }
 
@@ -42,7 +41,6 @@ func (tcp *tcpClient) bindInputChannel() {
 		serverResponse, err := serverReader.ReadString(tcp.parameters.Delimiter)
 
 		if err == nil {
-			fmt.Println("message received")
 			tcp.parameters.InputChannel <- serverResponse
 		}
 	}
