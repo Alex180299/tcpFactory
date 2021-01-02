@@ -14,7 +14,7 @@ func TestNewTcpClient(t *testing.T) {
 			Port:             "5000",
 			ReconnectionTime: 1000,
 			Name:             "Client connection",
-			Delimiter:        ' ',
+			MaxSizeBuffer:    100,
 		},
 		InputChannel:  inputChannel,
 		OutputChannel: nil,

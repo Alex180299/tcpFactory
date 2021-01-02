@@ -38,10 +38,11 @@ func (tcp *tcpClient) Connect() error {
 func (tcp *tcpClient) bindInputChannel() {
 	serverReader := bufio.NewReader(tcp.conn)
 	for {
-		serverResponse, err := serverReader.ReadString(tcp.parameters.Delimiter)
+		bytes := make([]byte, tcp.parameters.MaxSizeBuffer)
+		_, err := serverReader.Read(bytes)
 
 		if err == nil {
-			tcp.parameters.InputChannel <- serverResponse
+			tcp.parameters.InputChannel <- string(bytes)
 		}
 	}
 }
