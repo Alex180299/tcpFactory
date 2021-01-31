@@ -1,13 +1,34 @@
 package tcp
 
 import (
-	"fmt"
 	"testing"
 )
 
+func createTcpServer() *TcpServer {
+	server := newTcpServer(&ServerParameters{
+		ConnectionParameters: ConnectionParameters{
+			Ip:               "localhost",
+			Port:             "5000",
+			ReconnectionTime: 1000,
+			Name:             "Server connection",
+			MaxSizeBuffer:    100,
+		},
+		OnNewClient: func(client *ServerClient) {
+			println("Client was connected with id: ", client.Id)
+		},
+	})
+
+	errServer := server.Connect()
+
+	if errServer != nil {
+		panic("Error to create server")
+	}
+
+	return &server
+}
+
 func TestNewTcpClient(t *testing.T) {
-	inputChannel := make(chan string)
-	outputChannel := make(chan string)
+	server := createTcpServer()
 
 	client := newTcpClient(&ClientParameters{
 		ConnectionParameters: ConnectionParameters{
@@ -17,18 +38,19 @@ func TestNewTcpClient(t *testing.T) {
 			Name:             "Client connection",
 			MaxSizeBuffer:    100,
 		},
-		InputChannel:  inputChannel,
-		OutputChannel: outputChannel,
+		OnNewServerMessage: func(message []byte) {
+			println("Message received: ", string(message))
+		},
 	})
 
-	err := client.Connect()
+	errClient := client.Connect()
 
-	outputChannel <- "Golang client connected"
-	fmt.Println(<-inputChannel)
-
-	if err != nil {
+	if errClient != nil {
 		t.Errorf("error to create tcp client")
 	}
 
+	client.SendMessage([]byte("Hello from tcp client"))
 	client.Close()
+
+	server.Close()
 }

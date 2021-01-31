@@ -10,7 +10,8 @@ func TestGetNewTcpServer(t *testing.T) {
 			ReconnectionTime: 1000,
 			Name:             "Server connection",
 		},
-		OnNewClientListener: func(client *ServerClient) {},
+		OnNewClient:        func(client *ServerClient) {},
+		OnNewClientMessage: func(message []byte, client ServerClient) {},
 	})
 }
 
@@ -22,7 +23,6 @@ func TestGetNewTcpClient(t *testing.T) {
 			ReconnectionTime: 1000,
 			Name:             "Client connection",
 		},
-		InputChannel:  nil,
-		OutputChannel: nil,
+		OnNewServerMessage: func(message []byte) {},
 	})
 }

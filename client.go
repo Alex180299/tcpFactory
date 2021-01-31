@@ -4,18 +4,20 @@ import (
 	"net"
 )
 
-type tcpClient struct {
+type OnNewServerMessage func(message []byte)
+
+type TcpClient struct {
 	parameters *ClientParameters
 	conn       *net.TCPConn
 }
 
-func newTcpClient(parameters *ClientParameters) Tcp {
-	return &tcpClient{
+func newTcpClient(parameters *ClientParameters) TcpClient {
+	return TcpClient{
 		parameters: parameters,
 	}
 }
 
-func (tcp *tcpClient) Connect() error {
+func (tcp *TcpClient) Connect() error {
 	serverAddr := tcp.parameters.Ip + ":" + tcp.parameters.Port
 	tcpAddr, err := net.ResolveTCPAddr("tcp", serverAddr)
 
@@ -30,29 +32,25 @@ func (tcp *tcpClient) Connect() error {
 	}
 
 	tcp.conn = conn
-	go tcp.bindInputChannel()
-	go tcp.bindOutputChannel()
+	go tcp.bindInput()
 	return nil
 }
 
-func (tcp *tcpClient) bindInputChannel() {
+func (tcp *TcpClient) bindInput() {
 	for {
 		bytes := make([]byte, tcp.parameters.MaxSizeBuffer)
 		_, err := tcp.conn.Read(bytes)
 
 		if err == nil {
-			tcp.parameters.InputChannel <- string(bytes)
+			tcp.parameters.OnNewServerMessage(bytes)
 		}
 	}
 }
 
-func (tcp *tcpClient) bindOutputChannel() {
-	for {
-		outputMessage := <-tcp.parameters.OutputChannel
-		tcp.conn.Write([]byte(outputMessage))
-	}
+func (tcp *TcpClient) SendMessage(message []byte) {
+	tcp.conn.Write([]byte(message))
 }
 
-func (tcp *tcpClient) Close() {
+func (tcp *TcpClient) Close() {
 	tcp.conn.Close()
 }

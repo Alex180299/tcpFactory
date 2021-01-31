@@ -1,9 +1,9 @@
 package tcp
 
-func GetNewTcpServer(parameters *ServerParameters) Tcp {
+func GetNewTcpServer(parameters *ServerParameters) TcpServer {
 	return newTcpServer(parameters)
 }
 
-func GetNewTcpClient(parameters *ClientParameters) Tcp {
+func GetNewTcpClient(parameters *ClientParameters) TcpClient {
 	return newTcpClient(parameters)
 }

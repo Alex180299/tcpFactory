@@ -1,7 +1,8 @@
 package tcp
 
+import "net"
+
 type ServerClient struct {
-	id            string
-	InputChannel  chan string
-	OutputChannel chan string
+	Id   int
+	conn *net.TCPConn
 }

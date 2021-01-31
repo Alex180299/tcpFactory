@@ -4,20 +4,22 @@ import (
 	"net"
 )
 
-type OnNewClientListener func(client *ServerClient)
+type OnNewClient func(client *ServerClient)
+type OnNewClientMessage func(message []byte, client ServerClient)
 
-type tcpServer struct {
+type TcpServer struct {
 	parameters *ServerParameters
 	listener   *net.TCPListener
+	clients    []*ServerClient
 }
 
-func newTcpServer(parameters *ServerParameters) Tcp {
-	return &tcpServer{
+func newTcpServer(parameters *ServerParameters) TcpServer {
+	return TcpServer{
 		parameters: parameters,
 	}
 }
 
-func (tcp *tcpServer) Connect() error {
+func (tcp *TcpServer) Connect() error {
 	serverAddr := tcp.parameters.Ip + ":" + tcp.parameters.Port
 
 	addr, err := net.ResolveTCPAddr("tcp", serverAddr)
@@ -35,7 +37,7 @@ func (tcp *tcpServer) Connect() error {
 	return nil
 }
 
-func (tcp *tcpServer) acceptClient() {
+func (tcp *TcpServer) acceptClient() {
 	for {
 		conn, err := tcp.listener.AcceptTCP()
 		if err != nil {
@@ -46,39 +48,42 @@ func (tcp *tcpServer) acceptClient() {
 	}
 }
 
-func (tcp *tcpServer) handleNewClient(conn *net.TCPConn) {
-	inputChannel := make(chan string)
-	outputChannel := make(chan string)
-
+func (tcp *TcpServer) handleNewClient(conn *net.TCPConn) {
 	serverClient := &ServerClient{
-		id:            "",
-		InputChannel:  inputChannel,
-		OutputChannel: outputChannel,
+		Id:   len(tcp.clients),
+		conn: conn,
 	}
 
-	go tcp.parameters.OnNewClientListener(serverClient)
+	tcp.clients = append(tcp.clients, serverClient)
+	go tcp.parameters.OnNewClient(serverClient)
 	go tcp.handleClientInputChannel(conn, serverClient)
-	go tcp.handleClientOutputChannel(conn, serverClient)
 }
 
-func (tcp *tcpServer) handleClientInputChannel(conn *net.TCPConn, client *ServerClient) {
+func (tcp *TcpServer) handleClientInputChannel(conn *net.TCPConn, client *ServerClient) {
 	for {
 		bytes := make([]byte, tcp.parameters.MaxSizeBuffer)
 		_, err := conn.Read(bytes)
 
 		if err == nil {
-			client.InputChannel <- string(bytes)
+			tcp.parameters.OnNewClientMessage(bytes, *client)
 		}
 	}
 }
 
-func (tcp *tcpServer) handleClientOutputChannel(conn *net.TCPConn, client *ServerClient) {
-	for {
-		outputMessage := <-client.OutputChannel
-		conn.Write([]byte(outputMessage))
+func (tcp *TcpServer) SendMessageToAll(message []byte) {
+	for _, client := range tcp.clients {
+		client.conn.Write([]byte(message))
 	}
 }
 
-func (tcp *tcpServer) Close() {
+func (tcp *TcpServer) SendMessageToClient(message []byte, clientId int) {
+	client := tcp.clients[clientId]
+	client.conn.Write([]byte(message))
+}
+
+func (tcp *TcpServer) Close() {
+	for _, client := range tcp.clients {
+		client.conn.Close()
+	}
 	tcp.listener.Close()
 }
