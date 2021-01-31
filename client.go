@@ -1,13 +1,16 @@
 package tcp
 
 import (
+	"fmt"
 	"net"
+	"time"
 )
 
 type OnNewServerMessage func(message []byte)
 
 type TcpClient struct {
 	parameters *ClientParameters
+	tcpAddr    *net.TCPAddr
 	conn       *net.TCPConn
 }
 
@@ -19,21 +22,58 @@ func newTcpClient(parameters *ClientParameters) TcpClient {
 
 func (tcp *TcpClient) Connect() error {
 	serverAddr := tcp.parameters.Ip + ":" + tcp.parameters.Port
+	errResolveAddr := tcp.resolveAddress(serverAddr)
+
+	if errResolveAddr != nil {
+		return errResolveAddr
+	}
+
+	errResolveTcp := tcp.resolveDialTCP()
+
+	if errResolveTcp != nil {
+		return errResolveTcp
+	}
+
+	go tcp.bindInput()
+	return nil
+}
+
+func (tcp *TcpClient) resolveAddress(serverAddr string) error {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", serverAddr)
 
 	if err != nil {
-		return err
+		reconnectionTime := tcp.parameters.ConnectionParameters.ReconnectionTime
+		if reconnectionTime > 0 {
+			t, _ := time.ParseDuration(fmt.Sprintf("%dms", reconnectionTime))
+			time.Sleep(t)
+			fmt.Println("Error resolving address: ", serverAddr, ", reconnecting")
+			return tcp.resolveAddress(serverAddr)
+		} else {
+			return err
+		}
+	} else {
+		tcp.tcpAddr = tcpAddr
+		return nil
 	}
+}
 
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+func (tcp *TcpClient) resolveDialTCP() error {
+	conn, err := net.DialTCP("tcp", nil, tcp.tcpAddr)
 
 	if err != nil {
-		return err
+		reconnectionTime := tcp.parameters.ConnectionParameters.ReconnectionTime
+		if reconnectionTime > 0 {
+			t, _ := time.ParseDuration(fmt.Sprintf("%dms", reconnectionTime))
+			time.Sleep(t)
+			fmt.Println("Error to connect client, reconnecting")
+			return tcp.resolveDialTCP()
+		} else {
+			return err
+		}
+	} else {
+		tcp.conn = conn
+		return nil
 	}
-
-	tcp.conn = conn
-	go tcp.bindInput()
-	return nil
 }
 
 func (tcp *TcpClient) bindInput() {

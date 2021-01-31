@@ -1,7 +1,9 @@
 package tcp
 
 import (
+	"fmt"
 	"net"
+	"time"
 )
 
 type OnNewClient func(client *ServerClient)
@@ -11,6 +13,7 @@ type TcpServer struct {
 	parameters *ServerParameters
 	listener   *net.TCPListener
 	clients    []*ServerClient
+	tcpAddr    *net.TCPAddr
 }
 
 func newTcpServer(parameters *ServerParameters) TcpServer {
@@ -22,19 +25,57 @@ func newTcpServer(parameters *ServerParameters) TcpServer {
 func (tcp *TcpServer) Connect() error {
 	serverAddr := tcp.parameters.Ip + ":" + tcp.parameters.Port
 
-	addr, err := net.ResolveTCPAddr("tcp", serverAddr)
+	errResolveAddr := tcp.resolveAddress(serverAddr)
+
+	if errResolveAddr != nil {
+		return errResolveAddr
+	}
+
+	err := tcp.resolveListenTCP()
 	if err != nil {
 		return err
 	}
 
-	listener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return err
-	}
-
-	tcp.listener = listener
 	go tcp.acceptClient()
 	return nil
+}
+
+func (tcp *TcpServer) resolveAddress(serverAddr string) error {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", serverAddr)
+
+	if err != nil {
+		reconnectionTime := tcp.parameters.ConnectionParameters.ReconnectionTime
+		if reconnectionTime > 0 {
+			t, _ := time.ParseDuration(fmt.Sprintf("%dms", reconnectionTime))
+			time.Sleep(t)
+			fmt.Println("Error resolving address: ", serverAddr, ", reconnecting")
+			return tcp.resolveAddress(serverAddr)
+		} else {
+			return err
+		}
+	} else {
+		tcp.tcpAddr = tcpAddr
+		return nil
+	}
+}
+
+func (tcp *TcpServer) resolveListenTCP() error {
+	listener, err := net.ListenTCP("tcp", tcp.tcpAddr)
+
+	if err != nil {
+		reconnectionTime := tcp.parameters.ConnectionParameters.ReconnectionTime
+		if reconnectionTime > 0 {
+			t, _ := time.ParseDuration(fmt.Sprintf("%dms", reconnectionTime))
+			time.Sleep(t)
+			fmt.Println("Error to connect server, reconnecting")
+			return tcp.resolveListenTCP()
+		} else {
+			return err
+		}
+	} else {
+		tcp.listener = listener
+		return nil
+	}
 }
 
 func (tcp *TcpServer) acceptClient() {

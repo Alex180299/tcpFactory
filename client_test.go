@@ -1,7 +1,9 @@
 package tcp
 
 import (
+	"fmt"
 	"testing"
+	"time"
 )
 
 func createTcpServer() *TcpServer {
@@ -14,7 +16,10 @@ func createTcpServer() *TcpServer {
 			MaxSizeBuffer:    100,
 		},
 		OnNewClient: func(client *ServerClient) {
-			println("Client was connected with id: ", client.Id)
+			fmt.Println("Client was connected with id: ", client.Id)
+		},
+		OnNewClientMessage: func(message []byte, client ServerClient) {
+			fmt.Println("Message received from client ", client.Id, ":", string(message))
 		},
 	})
 
@@ -49,7 +54,11 @@ func TestNewTcpClient(t *testing.T) {
 		t.Errorf("error to create tcp client")
 	}
 
+	//Wait to server receive and print the new client before to send message
+	time.Sleep(10 * time.Millisecond)
 	client.SendMessage([]byte("Hello from tcp client"))
+	//Wait to server receive and print the message
+	time.Sleep(10 * time.Millisecond)
 	client.Close()
 
 	server.Close()
