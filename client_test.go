@@ -15,10 +15,10 @@ func createTcpServer() *TcpServer {
 			Name:             "Server connection",
 			MaxSizeBuffer:    100,
 		},
-		OnNewClient: func(client *ServerClient) {
+		OnNewClient: func(client *ServerClient, tcp TcpServer) {
 			fmt.Println("Client was connected with id: ", client.Id)
 		},
-		OnNewClientMessage: func(message []byte, client ServerClient) {
+		OnNewClientMessage: func(message []byte, client ServerClient, tcp TcpServer) {
 			fmt.Println("Message received from client ", client.Id, ":", string(message))
 		},
 	})

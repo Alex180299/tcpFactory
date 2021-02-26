@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-type OnNewClient func(client *ServerClient)
-type OnNewClientMessage func(message []byte, client ServerClient)
+type OnNewClient func(client *ServerClient, tcp TcpServer)
+type OnNewClientMessage func(message []byte, client ServerClient, tcp TcpServer)
 
 type TcpServer struct {
 	parameters *ServerParameters
@@ -96,7 +96,7 @@ func (tcp *TcpServer) handleNewClient(conn *net.TCPConn) {
 	}
 
 	tcp.clients = append(tcp.clients, serverClient)
-	go tcp.parameters.OnNewClient(serverClient)
+	go tcp.parameters.OnNewClient(serverClient, *tcp)
 	go tcp.handleClientInputChannel(conn, serverClient)
 }
 
@@ -106,7 +106,7 @@ func (tcp *TcpServer) handleClientInputChannel(conn *net.TCPConn, client *Server
 		_, err := conn.Read(bytes)
 
 		if err == nil {
-			tcp.parameters.OnNewClientMessage(bytes, *client)
+			tcp.parameters.OnNewClientMessage(bytes, *client, *tcp)
 		}
 	}
 }

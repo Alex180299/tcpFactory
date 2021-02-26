@@ -13,7 +13,7 @@ func TestNewTcpServer(t *testing.T) {
 			Name:             "Server connection",
 			MaxSizeBuffer:    100,
 		},
-		OnNewClient: func(client *ServerClient) {
+		OnNewClient: func(client *ServerClient, tcp TcpServer) {
 			println("Client was connected with id: ", client.Id)
 		},
 	})
